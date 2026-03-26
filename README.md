@@ -6,6 +6,9 @@ This tool visualizes a proprietary Public Safety Risk Score derived from FDA Com
 How the Score is Calculated
 Each CRL is evaluated across four dimensions:
 
+
+![Score Diagram](crl_public_safety_score_flow.svg)
+
 ####  Deficiency Severity 
 — Measures the seriousness of the cited manufacturing, safety, or efficacy deficiencies. This score is weighted by a Drug Type Multiplier, which reflects the relative risk profile of the drug category. Together, these produce a Deficiency Severity Score ranging from 0 (no concern) to -50 (critical concern).
 #### Facility Inspection 
