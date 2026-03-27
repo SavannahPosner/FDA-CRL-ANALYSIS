@@ -25,34 +25,48 @@ Limitations
 This score is derived from AI-assisted analysis of redacted CRL text and should be interpreted with the following caveats in mind. The underlying CRL dataset is a growing but incomplete archive — not all CRLs issued by the FDA are currently published. Redactions in source letters may obscure the full scope of cited deficiencies. The rubric reflects a structured but interpretive framework; scores represent an assessed risk signal, not an official FDA determination.
 
 
-## ETL Process
+## ETL Pipeline
 
-The ETL pipeline runs automatically on the first of every month via an AWS ECS Fargate task triggered by an EventBridge scheduled rule.
+This project includes a fully automated, cloud-native ETL pipeline that monitors the FDA's Complete Response Letter (CRL) database and incrementally updates a set of Databricks Delta tables with AI-generated risk scores on a monthly basis.
 
-### Pipeline Steps
+### Overview
 
-1. **Extract** — Pulls all Complete Response Letters (CRLs) from the FDA Transparency API and compares them against existing records in `fda_risk.raw.letters` to identify new entries.
+The pipeline detects net-new FDA enforcement letters, evaluates them against a proprietary public safety scoring rubric using Claude (Anthropic), and persists the results to Databricks — all without manual intervention. It is containerized with Docker, deployed to AWS ECS Fargate, and triggered monthly via EventBridge.
 
-2. **Geocode** — For any new letters, the company address is geocoded via the Google Maps API and stored in `fda_risk.transformed.locations_ref`.
+### Pipeline Architecture
 
-3. **Score (AI)** — New letters are chunked into groups of 10 and sent to Claude (Haiku) with a public safety grading rubric. Claude evaluates each letter across four categories: Deficiency Severity, Drug Type Multiplier, Facility Inspection, and Outcome Severity, returning structured scores and source citations.
+**1. Incremental Extract**
+Pulls the full CRL dataset from the FDA Transparency API and performs a set difference against existing records in Databricks to identify only net-new letters. This ensures idempotent, non-duplicative loads regardless of how many times the pipeline runs.
 
-4. **Transform** — Raw AI scores are mapped to numeric values using reference tables and combined into a final public safety risk score per letter, stored in `fda_risk.transformed.individual_public_safety_risk_scores`.
+**2. Geocoding**
+New company addresses are geocoded via the Google Maps API and stored in a locations reference table. The pipeline checks against existing geocoded records to avoid redundant API calls.
 
-5. **Rollup** — Scores are aggregated by company and address, applying a letter count detractor for repeat offenders. The rolled up scores, colors, and hover data for visualization are written to `fda_risk.transformed.rolled_up_public_safety_risk_scores`, which is fully replaced on each run.
+**3. AI-Powered Scoring**
+New letters are batched in groups of 10 and evaluated by Claude Haiku against a structured public safety rubric spanning four dimensions: Deficiency Severity, Drug Type Multiplier, Facility Inspection Status, and Outcome Severity. The model returns structured JSON scores with source citations pulled directly from the letter text, enabling auditability of every scoring decision.
 
-### Tables Updated
+**4. Score Transformation**
+Raw categorical scores returned by the model are mapped to numeric values via reference tables and combined into a composite public safety risk score per letter using a weighted formula.
 
-| Table | Operation |
-|-------|-----------|
-| `fda_risk.raw.letters` | Append new rows |
-| `fda_risk.transformed.locations_ref` | Append new rows |
-| `fda_risk.transformed.individual_public_safety_risk_scores` | Append new rows |
-| `fda_risk.transformed.rolled_up_public_safety_risk_scores` | Full replace |
+**5. Company-Level Rollup**
+Individual letter scores are aggregated to the company-address level, with a repeat offense detractor applied to penalize companies with multiple CRLs. The resulting table powers the front-end visualization layer and is fully replaced on each run to reflect the latest state of all scores.
+
+### Tables
+
+| Table | Layer | Operation |
+|-------|-------|-----------|
+| `fda_risk.raw.letters` | Raw | Incremental append |
+| `fda_risk.transformed.locations_ref` | Transformed | Incremental append |
+| `fda_risk.transformed.individual_public_safety_risk_scores` | Transformed | Incremental append |
+| `fda_risk.transformed.rolled_up_public_safety_risk_scores` | Transformed | Full replace |
 
 ### Infrastructure
 
-- **Compute** — AWS ECS Fargate
-- **Schedule** — EventBridge cron `(0 8 1 * ? *)` — 1st of every month at 8am UTC
-- **Secrets** — AWS Secrets Manager (FDA API, Anthropic, Databricks, Google Maps)
-- **Container Registry** — AWS ECR
+| Component | Technology |
+|-----------|------------|
+| Compute | AWS ECS Fargate |
+| Container Registry | AWS ECR |
+| Scheduler | AWS EventBridge `cron(0 8 1 * ? *)` |
+| Secrets Management | AWS Secrets Manager |
+| Data Warehouse | Databricks (Delta Lake) |
+| AI Scoring | Anthropic Claude Haiku |
+| Geocoding | Google Maps API |
