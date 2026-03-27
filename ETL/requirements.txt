@@ -1,0 +1,6 @@
+pandas
+boto3
+requests
+anthropic
+databricks-sql-connector
+googlemaps
