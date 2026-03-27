@@ -24,6 +24,80 @@ Score RangeInterpretation91 – 100Minimal public safety concern71 – 90Low pub
 Limitations
 This score is derived from AI-assisted analysis of redacted CRL text and should be interpreted with the following caveats in mind. The underlying CRL dataset is a growing but incomplete archive — not all CRLs issued by the FDA are currently published. Redactions in source letters may obscure the full scope of cited deficiencies. The rubric reflects a structured but interpretive framework; scores represent an assessed risk signal, not an official FDA determination.
 
+## Table Structure
+
+### Raw
+
+**`fda_risk.raw.letters`** `append`
+| column | type |
+|---|---|
+| letter_id | string |
+| application_number | string |
+| letter_date | string |
+| company_name | string |
+| company_address | string |
+| text | string |
+| letter_type | string |
+| letter_year | double |
+| approver_name | string |
+| file_name | string |
+
+---
+
+### Transformed
+
+**`fda_risk.transformed.locations_ref`** `append`
+| column | type |
+|---|---|
+| letter_id | string (FK → raw.letters) |
+| Lat | double |
+| Lon | double |
+
+**`fda_risk.transformed.public_safety_risk_reference`** `lookup`
+| column | type |
+|---|---|
+| id | string (PK) |
+| category | string |
+| subcategory | string |
+| base_deduction | double |
+| multiplier | double |
+
+**`fda_risk.transformed.individual_public_safety_risk_scores`** `append`
+| column | type |
+|---|---|
+| letter_id | string (FK → raw.letters) |
+| deficiency_severity_ps | string |
+| facility_inspection_ps | string |
+| outcome_severity_ps | string |
+| drug_type_multiplier_ps | string |
+| final_public_safety_risk_score | bigint |
+| ps_summary | string |
+
+**`fda_risk.transformed.rolled_up_public_safety_risk_scores`** `full replace`
+| column | type |
+|---|---|
+| company_name | string |
+| company_address | string |
+| final_ps_risk_score_mean | double |
+| agg_final_ps_risk_score | double |
+| letter_ids | string |
+| letter_count | bigint |
+| color | string |
+| hover_data | string |
+| Lat | double |
+| Lon | double |
+
+---
+
+### Relationships
+
+| from | to | key |
+|---|---|---|
+| `raw.letters` | `locations_ref` | `letter_id` |
+| `raw.letters` | `individual_ps_risk_scores` | `letter_id` |
+| `public_safety_risk_reference` | `individual_ps_risk_scores` | `id → score lookup` |
+| `individual_ps_risk_scores` | `rolled_up_ps_risk_scores` | aggregated by company |
+| `locations_ref` | `rolled_up_ps_risk_scores` | `Lat · Lon` |
 
 ## ETL Pipeline
 
