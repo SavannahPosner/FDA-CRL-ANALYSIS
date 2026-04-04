@@ -637,16 +637,13 @@
                 <a href="http://3.134.108.197:8050" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:1rem; padding:1rem 2.5rem; margin-top:0.5rem;">
                     Open Dashboard ↗
                 </a>
-            </div>
+            
         </div>
     </div>
 </div>
 
 <!-- ═══════════════ JS ═══════════════ -->
 <script>
-
-    const DASHBOARD_URL = 'http://3.134.108.197:8050';
-
     function showPage(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + page).classList.add('active');
@@ -654,22 +651,6 @@
             a.classList.toggle('active', a.dataset.page === page);
         });
         window.scrollTo(0, 0);
-
-        // Load dashboard iframe on first visit
-        if (page === 'dashboard') {
-            const frame = document.getElementById('dashboardFrame');
-            const placeholder = document.getElementById('dashboardPlaceholder');
-            if (DASHBOARD_URL && !frame.src) {
-                frame.src = DASHBOARD_URL;
-                frame.style.display = 'block';
-                frame.onload = () => { placeholder.style.display = 'none'; };
-            } else if (!DASHBOARD_URL) {
-                placeholder.querySelector('p').innerHTML =
-                    'Dashboard URL not configured.<br><span style="font-size:0.85rem;">Set <code>DASHBOARD_URL</code> in index.html after deploying the Fargate service.</span>';
-            }
-        }
-
-        // Close mobile menu
         document.getElementById('navLinks').classList.remove('open');
     }
 
@@ -677,7 +658,6 @@
         document.getElementById('navLinks').classList.toggle('open');
     }
 
-    // Scroll-triggered fade-ins
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.15 });
