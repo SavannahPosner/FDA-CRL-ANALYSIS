@@ -526,21 +526,21 @@
     <!-- Chapters -->
     <div class="content-section tight-top">
 
-        <div class="fp-chapter">
+        <div class="fp-chapter" style="max-width: 1400px;>
             <div class="fp-chapter-num">01 — The Pipeline</div>
             <h3>Automated data collection and processing</h3>
             <p>Every month, an AWS scheduled task pulls new FDA letters, checks them against existing records, geocodes facility addresses, and feeds everything into Databricks. No manual steps — it runs unattended and recovers from failures automatically.</p>
             <a class="btn btn-ghost" onclick="showPage('docs')">Read the full technical documentation →</a>
         </div>
 
-        <div class="fp-chapter">
+        <div class="fp-chapter" style="max-width: 1400px;>
             <div class="fp-chapter-num">02 — The AI Scoring Engine</div>
             <h3>LLM-powered risk evaluation</h3>
             <p>Each letter is sent to Claude, which reads the full text and scores it against a custom four-category rubric. The AI classifies deficiency severity, drug risk type, facility inspection results, and patient outcome impact — then its reasoning is stored alongside the scores for traceability.</p>
             <a class="btn btn-ghost" onclick="showPage('metrics')">See how scores are calculated →</a>
         </div>
 
-        <div class="fp-chapter">
+        <div class="fp-chapter" style="max-width: 1400px;>
             <div class="fp-chapter-num">03 — The Stack</div>
             <h3>Cloud-native, fully containerized</h3>
             <p>Python application containerized with Docker, deployed on AWS ECS Fargate, triggered monthly by EventBridge. Secrets managed through AWS Secrets Manager. Data stored in Databricks Delta Lake. All source code on GitHub.</p>
