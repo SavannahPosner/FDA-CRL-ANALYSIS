@@ -149,18 +149,37 @@ companies.forEach(function(c) {
 });
 
 // Render explanation table
+
 function renderTable(companyFilter) {
     const tbody = document.getElementById('exp-body');
+    const thead = document.querySelector('table.exp-table thead tr');
+    
     const filtered = companyFilter === 'All'
         ? explanations
         : explanations.filter(function(e) { return e.company_name === companyFilter; });
 
+    // Swap the first column header
+    const firstTh = thead.querySelector('th:first-child');
+    if (companyFilter === 'All') {
+        firstTh.textContent = 'Company';
+    } else {
+        firstTh.textContent = 'Date';
+    }
+
     let html = '';
     for (let i = 0; i < filtered.length; i++) {
         const e = filtered[i];
-        html += '<tr>'
-            + '<td>' + e.company_name + '</td>'
-            + '<td>' + e.ps_summary + '</td>'
+        html += '<tr>';
+        
+        if (companyFilter === 'All') {
+            html += '<td>' + e.company_name + '</td>';
+        } else {
+            // Show date instead — pull from letter_date if available,
+            // otherwise extract from ps_summary or another field
+            html += '<td>' + (e.letter_date || 'N/A') + '</td>';
+        }
+        
+        html += '<td>' + e.ps_summary + '</td>'
             + '<td>' + e.deficiency_severity_source_text + '</td>'
             + '<td>' + e.drug_type_multiplier_source_text + '</td>'
             + '<td>' + e.facility_inspection_source_text + '</td>'
