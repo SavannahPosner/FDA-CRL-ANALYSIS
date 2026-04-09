@@ -150,35 +150,72 @@ companies.forEach(function(c) {
 
 // Render explanation table
 
+var companyDateMap = {};
+rollupFig.data[0].customdata.forEach(function(cd, i) {
+    var name = rollupFig.data[0].hovertext[i];
+    var dates = [];
+    var re = /\* (\d{4}-\d{2}-\d{2}) Score:/g;
+    var m;
+    while ((m = re.exec(cd)) !== null) {
+        dates.push(m[1]);
+    }
+    if (!companyDateMap[name]) {
+        companyDateMap[name] = dates;
+    } else {
+        companyDateMap[name] = companyDateMap[name].concat(dates);
+    }
+});
+
+// Match explanations to dates by company name + order
+var explanationDateCache = {};
+explanations.forEach(function(e) {
+    var key = e.company_name;
+    if (!explanationDateCache[key]) {
+        explanationDateCache[key] = 0;
+    }
+    var idx = explanationDateCache[key];
+    // Try to find matching dates from the rollup hover data
+    // Company names in rollup may differ slightly, so do a fuzzy match
+    var dates = null;
+    for (var rName in companyDateMap) {
+        if (rName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+            .indexOf(key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()) === 0 ||
+            key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+            .indexOf(rName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()) === 0) {
+            dates = companyDateMap[rName];
+            break;
+        }
+    }
+    if (dates && idx < dates.length) {
+        e._letter_date = dates[idx];
+    } else {
+        // Fallback: extract date from ps_summary or deficiency text
+        var fallback = (e.deficiency_severity_source_text + ' ' + e.ps_summary).match(/(\d{4}-\d{2}-\d{2})/);
+        e._letter_date = fallback ? fallback[1] : 'N/A';
+    }
+    explanationDateCache[key]++;
+});
+
 function renderTable(companyFilter) {
-    const tbody = document.getElementById('exp-body');
-    const thead = document.querySelector('table.exp-table thead tr');
-    
-    const filtered = companyFilter === 'All'
+    var tbody = document.getElementById('exp-body');
+    var thead = document.querySelector('table.exp-table thead tr');
+    var firstTh = thead.querySelector('th:first-child');
+
+    var filtered = companyFilter === 'All'
         ? explanations
         : explanations.filter(function(e) { return e.company_name === companyFilter; });
 
-    // Swap the first column header
-    const firstTh = thead.querySelector('th:first-child');
-    if (companyFilter === 'All') {
-        firstTh.textContent = 'Company';
-    } else {
-        firstTh.textContent = 'Date';
-    }
+    firstTh.textContent = companyFilter === 'All' ? 'Company' : 'Date';
 
-    let html = '';
-    for (let i = 0; i < filtered.length; i++) {
-        const e = filtered[i];
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var e = filtered[i];
         html += '<tr>';
-        
         if (companyFilter === 'All') {
             html += '<td>' + e.company_name + '</td>';
         } else {
-            // Show date instead — pull from letter_date if available,
-            // otherwise extract from ps_summary or another field
-            html += '<td>' + (e.letter_date || 'N/A') + '</td>';
+            html += '<td>' + e._letter_date + '</td>';
         }
-        
         html += '<td>' + e.ps_summary + '</td>'
             + '<td>' + e.deficiency_severity_source_text + '</td>'
             + '<td>' + e.drug_type_multiplier_source_text + '</td>'
